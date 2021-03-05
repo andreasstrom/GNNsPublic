@@ -12,7 +12,11 @@ from nets.SBMs_node_classification.gin_net import GINNet
 from nets.SBMs_node_classification.mo_net import MoNet as MoNet_
 from nets.SBMs_node_classification.ring_gnn_net import RingGNNNet
 from nets.SBMs_node_classification.three_wl_gnn_net import ThreeWLGNNNet
+from nets.SBMs_node_classification.my_gcn_net import MyGraphNetwork
 
+
+def MyGNN(net_params):
+    return MyGraphNetwork(net_params)
 
 def GatedGCN(net_params):
     return GatedGCNNet(net_params)
@@ -52,7 +56,8 @@ def gnn_model(MODEL_NAME, net_params):
         'GIN': GIN,
         'MoNet': MoNet,
         'RingGNN': RingGNN,
-        '3WLGNN': ThreeWLGNN
+        '3WLGNN': ThreeWLGNN,
+        'MyGNN': MyGNN
     }
         
     return models[MODEL_NAME](net_params)
