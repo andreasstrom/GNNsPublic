@@ -2,17 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import dgl.function as fn
+import dgl
 
 """
     ResGatedGCN: Residual Gated Graph ConvNets
     An Experimental Study of Neural Networks for Variable Graphs (Xavier Bresson and Thomas Laurent, ICLR 2018)
     https://arxiv.org/pdf/1711.07553v2.pdf
 """
-#def u_mul_e_POW(edges, p):
- #   return{'m' : torch.abs(edges['Bh']*edges['sigma']).pow(p)}
-
-#def copy_e_POW(edges, p):
- #   return{'m' : torch.abs(edges['sigma']).pow(p)}
 
 class MyGraphLayer(nn.Module):
     """
@@ -40,10 +36,8 @@ class MyGraphLayer(nn.Module):
         self.bn_node_h = nn.BatchNorm1d(output_dim)
         self.bn_node_e = nn.BatchNorm1d(output_dim)
 
-
-    
     def forward(self, g, h, e):
-        
+        g.register_reduce_func(reduce_func_test)
         h_in = h # for residual connection
         e_in = e # for residual connection
         
@@ -67,7 +61,7 @@ class MyGraphLayer(nn.Module):
 
         g.ndata['Bh_pow'] = torch.abs(g.ndata['Bh']).pow(p)
         g.edata['sig_pow'] = torch.abs(g.edata['sigma']).pow(p)
-
+        #fn.sum('m', 'sum_sigma_h')
         g.update_all(fn.u_mul_e('Bh_pow', 'sig_pow', 'm'), fn.sum('m', 'sum_sigma_h')) # u_mul_e = elementwise mul. Output "m" = n_{ij}***Vh. Then sum! 
                                                                                  # Update_all - send messages through all edges and update all nodes.
         
