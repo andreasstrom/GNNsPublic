@@ -37,7 +37,7 @@ class MyGraphLayer(nn.Module):
         self.bn_node_e = nn.BatchNorm1d(output_dim)
 
     def forward(self, g, h, e):
-        g.register_reduce_func(reduce_func_test)
+        
         h_in = h # for residual connection
         e_in = e # for residual connection
         
