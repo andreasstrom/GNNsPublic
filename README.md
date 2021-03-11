@@ -1,7 +1,7 @@
 # Working repository for ongoing project
 
-***A repo where a majority of the files are created by [Dwivedi et. al.](https://github.com/graphdeeplearning/benchmarking-gnns)***
-Aforementioned repository was downloaded in order to add and modify files, creating a simple platform to study GNNs from.
+***A repo where a majority of the files are created by [Dwivedi et. al.](https://github.com/graphdeeplearning/benchmarking-gnns),*** as they have created a great platform to study GNNs from.
+Aforementioned repository was downloaded in order to add and modify files.
 
 ## Reference 
 
