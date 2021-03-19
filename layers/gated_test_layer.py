@@ -46,8 +46,20 @@ class GatedTestLayer(nn.Module):
         nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6)  """
         #h = (F.relu(nodes.mailbox['m'])).pow(P)
         h = torch.abs(nodes.mailbox['m']).pow(P)
-        torch.sum(h, dim=1).pow(1/P)
-        return {'neigh': nodes['h']}
+        return {'neigh': torch.sum(h, dim=1).pow(1/P)}
+
+    def pNorm_edges(self, edges):
+        """ fn.u_add_v(nodes['Dh'], nodes['Eh'], nodes['DEh']) 
+        nodes['e'] = nodes['DEh'] + nodes['Ce']
+        nodes['sigma'] = torch.sigmoid(nodes['e'])
+        fn.u_mul_e(nodes['Bh'],nodes['sigma'], nodes['test'])
+        fn.sum(nodes['test'], nodes['sum_sigma_h'])
+        fn.copy_e(nodes['sigma'], nodes['test2'])
+        fn.sum(nodes['test2'], nodes['sum_sigma'])
+        nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6)  """
+        #h = (F.relu(nodes.mailbox['m'])).pow(P)
+        h = torch.abs(nodes.mailbox['m']).pow(P)
+        return {'neigh': torch.sum(h, dim=1).pow(1/P)}
 
     def forward(self, g, h, e):
         
