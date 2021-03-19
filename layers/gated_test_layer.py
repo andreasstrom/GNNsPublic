@@ -50,7 +50,7 @@ class GatedTestLayer(nn.Module):
         graph.edata['e'] = graph.edata['DEh'] + graph.edata['Ce']
         graph.edata['sigma'] = torch.sigmoid(graph.edata['e']) # n_{ij}
 
-        alpha = torch.max(torch.abs(graph.ndata['Bh']))
+        alpha = torch.max(torch.abs(torch.cat((graph.ndata['Bh'],graph.edata['sigma']), dim=0)))
 
         graph.ndata['Bh_pow'] = (torch.abs(graph.ndata['Bh'])/alpha).pow(p)
         graph.edata['sig_pow'] = (torch.abs(graph.edata['sigma'])/alpha).pow(p)
