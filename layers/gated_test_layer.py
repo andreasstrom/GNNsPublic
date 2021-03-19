@@ -62,7 +62,7 @@ class GatedTestLayer(nn.Module):
         h = torch.abs(nodes.mailbox['m']).pow(P)
         return {'neigh': torch.sum(h, dim=1).pow(1/P)}
 
-    def updata_all_example(self, graph):
+    def update_all_example(self, graph):
         # store the result in graph.ndata['ft']g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh')) # . u_add_v = computes message on edge by elementwise addition. 
                                                      #   "DEh" output field. Apply edges - update edge features. Why edge features? 
 
@@ -87,7 +87,6 @@ class GatedTestLayer(nn.Module):
         h = graph.ndata['h'] # result of graph convolution
         e = graph.edata['e'] # result of graph convolution
         # Call update function outside of update_all
-        final_ft = graph.ndata['ft'] * 2
         return h, e
 
     def forward(self, g, h, e):
@@ -103,7 +102,7 @@ class GatedTestLayer(nn.Module):
         g.edata['e']  = e 
         g.edata['Ce'] = self.C(e) 
 
-        h, e = g.updata_all_example(self, g)
+        h, e = update_all_example(self, g)
         
         if self.batch_norm:
             h = self.bn_node_h(h) # batch normalization  
