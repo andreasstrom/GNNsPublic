@@ -40,7 +40,7 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
     epoch_loss /= (iter + 1)
     epoch_train_acc /= (iter + 1)
     for param_group in optimizer.param_groups:
-        print(param_group['grad'])
+        print(param_group['grads'])
     return epoch_loss, epoch_train_acc, optimizer
 
 

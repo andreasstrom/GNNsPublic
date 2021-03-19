@@ -36,7 +36,9 @@ class GatedTestLayer(nn.Module):
 
     def update_all_example(self, graph):
 
-        """ def robust_norm(x, p):
+        """ 
+        Attempt at robust p-norm á:
+        def robust_norm(x, p):
                 a = np.abs(x).max()
                 return a * norm1(x / a, p)
 
@@ -57,7 +59,6 @@ class GatedTestLayer(nn.Module):
         graph.update_all(fn.u_mul_e('Bh_pow', 'sig_pow', 'm'), fn.sum('m', 'sum_sigma_h')) # u_mul_e = elementwise mul. Output "m" = n_{ij}***Vh. Then sum! 
                                                                                  # Update_all - send messages through all edges and update all nodes.
         
-
         graph.update_all(fn.copy_e('sig_pow', 'm'), fn.sum('m', 'sum_sigma')) # copy_e - eqv to 'm': graph.edata['sigma']. Output "m". Then sum. 
                                                                         # Again, send messages and update all nodes. Why do this step?????
         
