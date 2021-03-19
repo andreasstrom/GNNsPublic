@@ -67,6 +67,7 @@ class GatedTestLayer(nn.Module):
                                                      #   "DEh" output field. Apply edges - update edge features. Why edge features? 
 
         p = torch.clamp(self.P,1,100)
+        graph.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
         graph.edata['e'] = graph.edata['DEh'] + graph.edata['Ce'] #  Bh + Ah. ????
 
         graph.edata['sigma'] = torch.sigmoid(graph.edata['e']) # n_{ij}
