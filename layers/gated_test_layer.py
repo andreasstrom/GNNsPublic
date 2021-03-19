@@ -82,11 +82,11 @@ class GatedTestLayer(nn.Module):
         g.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
         g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6)
 
-        g.update_all(fn.copy_u('h', 'm'), self.pNorm)
+        #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
         #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
         #h = (1 + self.eps) * h + g.ndata['neigh']
         #g.update_all(self.message_func,self.reduce_func) 
-        h = g.ndata['neigh'] # result of graph convolution
+        h = g.ndata['h'] # result of graph convolution
         e = g.edata['e'] # result of graph convolution
         
         if self.batch_norm:
