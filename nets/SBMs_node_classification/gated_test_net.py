@@ -36,7 +36,7 @@ class GatedTestNet(nn.Module):
         
         self.embedding_h = nn.Embedding(in_dim_node, hidden_dim) # node feat is an integer
         self.embedding_e = nn.Linear(in_dim_edge, hidden_dim) # edge feat is a float
-        self.layers = nn.ModuleList([ MyGraphLayer(hidden_dim, hidden_dim, dropout,
+        self.layers = nn.ModuleList([GatedTestLayer(hidden_dim, hidden_dim, dropout,
                                                     self.batch_norm, self.residual) for _ in range(n_layers) ])
         self.MLP_layer = MLPReadout(hidden_dim, n_classes)
         
