@@ -37,8 +37,7 @@ class GatedTestLayer(nn.Module):
     def pNorm(self, nodes):
         P = torch.clamp(self.p,1,100)
         #h = (F.relu(nodes.mailbox['m'])).pow(P)
-        h = torch.abs(nodes.mailbox['m'])
-        h = h.pow(P)
+        h = torch.abs(nodes.mailbox['m']).pow(P)
         return {'neigh': torch.sum(h, dim=1).pow(1/P)}
 
     def forward(self, g, h, e):
@@ -54,13 +53,15 @@ class GatedTestLayer(nn.Module):
         g.edata['e']  = e 
         g.edata['Ce'] = self.C(e) 
 
-        g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
+        """ g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
         g.edata['e'] = g.edata['DEh'] + g.edata['Ce']
         g.edata['sigma'] = torch.sigmoid(g.edata['e'])
         g.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), fn.sum('m', 'sum_sigma_h'))
         g.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
-        g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6)
+        g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6) """
 
+        g.update_all(fn.copy_u('h', 'm'), self.pNorm)
+        h = (torch.rand(1)*1e-3+1) * h + g.ndata['neigh']
         #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
         #h = (1 + self.eps) * h + g.ndata['neigh']
         #g.update_all(self.message_func,self.reduce_func) 
