@@ -57,6 +57,7 @@ class GatedTestNet(nn.Module):
         # output
         h_out = self.MLP_layer(h)
 
+        print(self.layers)
         return h_out
         
 
