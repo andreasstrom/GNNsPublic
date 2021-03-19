@@ -39,8 +39,8 @@ def train_epoch_sparse(model, optimizer, device, data_loader, epoch):
         epoch_train_acc += accuracy(batch_scores, batch_labels)
     epoch_loss /= (iter + 1)
     epoch_train_acc /= (iter + 1)
-    for p in optimizer.parameters():
-        print(p.grad)
+    for name, param in model.named_parameters():
+        print(name, param.grad.norm())
     return epoch_loss, epoch_train_acc, optimizer
 
 
