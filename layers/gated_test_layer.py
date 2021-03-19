@@ -35,7 +35,7 @@ class GatedTestLayer(nn.Module):
         self.P = nn.Parameter(torch.rand(output_dim)*1e-3+1) 
     
     def pNorm(self, nodes):
-        P = torch.clamp(self.p,1,100)
+        P = torch.clamp(self.P,1,100)
         #h = (F.relu(nodes.mailbox['m'])).pow(P)
         h = torch.abs(nodes.mailbox['m']).pow(P)
         return {'neigh': torch.sum(h, dim=1).pow(1/P)}
