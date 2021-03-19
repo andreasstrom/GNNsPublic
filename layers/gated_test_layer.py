@@ -61,6 +61,33 @@ class GatedTestLayer(nn.Module):
         #h = (F.relu(nodes.mailbox['m'])).pow(P)
         h = torch.abs(nodes.mailbox['m']).pow(P)
         return {'neigh': torch.sum(h, dim=1).pow(1/P)}
+    def updata_all_example(self, graph):
+        # store the result in graph.ndata['ft']g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh')) # . u_add_v = computes message on edge by elementwise addition. 
+                                                     #   "DEh" output field. Apply edges - update edge features. Why edge features? 
+
+        p = torch.clamp(self.P,1,100)
+        graph.edata['e'] = graph.edata['DEh'] + graph.edata['Ce'] #  Bh + Ah. ????
+
+        graph.edata['sigma'] = torch.sigmoid(graph.edata['e']) # n_{ij}
+
+        graph.ndata['Bh_pow'] = torch.abs(graph.ndata['Bh']).pow(p)
+        graph.edata['sig_pow'] = torch.abs(graph.edata['sigma']).pow(p)
+
+        graph.update_all(fn.u_mul_e('Bh_pow', 'sig_pow', 'm'), fn.sum('m', 'sum_sigma_h')) # u_mul_e = elementwise mul. Output "m" = n_{ij}***Vh. Then sum! 
+                                                                                 # Update_all - send messages through all edges and update all nodes.
+        
+
+        graph.update_all(fn.copy_e('sig_pow', 'm'), fn.sum('m', 'sum_sigma')) # copy_e - eqv to 'm': graph.edata['sigma']. Output "m". Then sum. 
+                                                                        # Again, send messages and update all nodes. Why do this step?????
+        
+        graph.ndata['h'] = graph.ndata['Ah'] + (graph.ndata['sum_sigma_h'] / (graph.ndata['sum_sigma'] + 1e-6)).pow(torch.div(1,p)) # Uh + sum()
+
+        #graph.update_all(self.message_func,self.reduce_func) 
+        h = graph.ndata['h'] # result of graph convolution
+        e = graph.edata['e'] # result of graph convolution
+        # Call update function outside of update_all
+        final_ft = graph.ndata['ft'] * 2
+        return h, e
 
     def forward(self, g, h, e):
         
@@ -75,19 +102,7 @@ class GatedTestLayer(nn.Module):
         g.edata['e']  = e 
         g.edata['Ce'] = self.C(e) 
 
-        g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
-        g.edata['e'] = g.edata['DEh'] + g.edata['Ce']
-        g.edata['sigma'] = torch.sigmoid(g.edata['e'])
-        g.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), fn.sum('m', 'sum_sigma_h'))
-        g.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
-        g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6)
-
-        #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
-        #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
-        #h = (1 + self.eps) * h + g.ndata['neigh']
-        #g.update_all(self.message_func,self.reduce_func) 
-        h = g.ndata['h'] # result of graph convolution
-        e = g.edata['e'] # result of graph convolution
+        h, e = updata_all_example(self, g)
         
         if self.batch_norm:
             h = self.bn_node_h(h) # batch normalization  
