@@ -45,6 +45,7 @@ class GatedTestLayer(nn.Module):
         fn.sum(nodes['test2'], nodes['sum_sigma'])
         nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6)  """
         #h = (F.relu(nodes.mailbox['m'])).pow(P)
+        print(nodes.ndata['h'])
         h = torch.abs(nodes.mailbox['m']).pow(P)
         return {'neigh': torch.sum(h, dim=1).pow(1/P)}
 
@@ -86,7 +87,7 @@ class GatedTestLayer(nn.Module):
         #h = (1 + self.eps) * h + g.ndata['neigh']
         #g.update_all(self.message_func,self.reduce_func) 
         h = g.ndata['neigh'] # result of graph convolution
-        e = g.edata['h'] # result of graph convolution
+        e = g.edata['e'] # result of graph convolution
         
         if self.batch_norm:
             h = self.bn_node_h(h) # batch normalization  
