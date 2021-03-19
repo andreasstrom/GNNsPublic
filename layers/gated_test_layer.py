@@ -61,7 +61,6 @@ class GatedTestLayer(nn.Module):
         g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6) """
 
         g.update_all(fn.copy_u('h', 'm'), self.pNorm)
-        h = (torch.rand(1)*1e-3+1) * h + g.ndata['neigh']
         #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
         #h = (1 + self.eps) * h + g.ndata['neigh']
         #g.update_all(self.message_func,self.reduce_func) 
