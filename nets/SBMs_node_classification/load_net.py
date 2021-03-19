@@ -15,6 +15,11 @@ from nets.SBMs_node_classification.three_wl_gnn_net import ThreeWLGNNNet
 from nets.SBMs_node_classification.my_gcn_net import MyGraphNetwork
 from nets.SBMs_node_classification.gin_MOD_net import GIN_mod_Net
 from nets.SBMs_node_classification.gin_MOD_linear_net import GIN_mod_linear_Net
+from nets.SBMs_node_classification.gin_MOD_linear_net import GIN_mod_linear_Net
+from nets.SBMs_node_classification.gated_test_net import GatedTestNet
+
+def GatedTest(net_params):
+    return GatedTestNet(net_params)
 
 def GINlinearmod(net_params):
     return GIN_mod_linear_Net(net_params)
@@ -66,7 +71,8 @@ def gnn_model(MODEL_NAME, net_params):
         '3WLGNN': ThreeWLGNN,
         'MyGNN': MyGNN,
         'GINmod': GINmod,
-        'GINlinearmod': GINlinearmod
+        'GINlinearmod': GINlinearmod,
+        'GatedTest': GatedTest
     }
         
     return models[MODEL_NAME](net_params)
