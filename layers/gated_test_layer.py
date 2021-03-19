@@ -36,17 +36,17 @@ class GatedTestLayer(nn.Module):
     
     def pNorm(self, nodes):
         P = torch.clamp(self.P,1,100)
-        fn.u_add_v(nodes['Dh'], nodes['Eh'], nodes['DEh']) 
+        """ fn.u_add_v(nodes['Dh'], nodes['Eh'], nodes['DEh']) 
         nodes['e'] = nodes['DEh'] + nodes['Ce']
         nodes['sigma'] = torch.sigmoid(nodes['e'])
         fn.u_mul_e(nodes['Bh'],nodes['sigma'], nodes['test'])
         fn.sum(nodes['test'], nodes['sum_sigma_h'])
         fn.copy_e(nodes['sigma'], nodes['test2'])
         fn.sum(nodes['test2'], nodes['sum_sigma'])
-        nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6) 
+        nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6)  """
         #h = (F.relu(nodes.mailbox['m'])).pow(P)
-        #h = torch.abs(nodes.mailbox['m']).pow(P)
-        #torch.sum(h, dim=1).pow(1/P)
+        h = torch.abs(nodes.mailbox['m']).pow(P)
+        torch.sum(h, dim=1).pow(1/P)
         return {'neigh': nodes['h']}
 
     def forward(self, g, h, e):
@@ -62,19 +62,19 @@ class GatedTestLayer(nn.Module):
         g.edata['e']  = e 
         g.edata['Ce'] = self.C(e) 
 
-        """ g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
+        g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
         g.edata['e'] = g.edata['DEh'] + g.edata['Ce']
         g.edata['sigma'] = torch.sigmoid(g.edata['e'])
         g.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), fn.sum('m', 'sum_sigma_h'))
         g.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
-        g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6) """
+        g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6)
 
         g.update_all(fn.copy_u('h', 'm'), self.pNorm)
         #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
         #h = (1 + self.eps) * h + g.ndata['neigh']
         #g.update_all(self.message_func,self.reduce_func) 
         h = g.ndata['neigh'] # result of graph convolution
-        e = g.edata['neigh'] # result of graph convolution
+        e = g.edata['h'] # result of graph convolution
         
         if self.batch_norm:
             h = self.bn_node_h(h) # batch normalization  
