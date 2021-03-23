@@ -23,7 +23,7 @@ class GraphSageLayer(nn.Module):
         self.batch_norm = batch_norm
         self.residual = residual
         self.dgl_builtin = dgl_builtin
-        self.P = nn.Parameter(torch.rand(output_dim)*1e-3+1) 
+        self.P = nn.Parameter(torch.rand(out_feats)*1e-3+1) 
         
         if in_feats != out_feats:
             self.residual = False
@@ -134,7 +134,7 @@ class SumPoolAggregator(Aggregator):
 
     def aggre(self, neighbour):
         sum_neighbour = torch.sum(neighbour, dim=1)
-        
+        sum_neighbour = sum_neighbour.pow(torch.div(1,self.P))
         return sum_neighbour
 
 
