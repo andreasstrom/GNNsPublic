@@ -48,7 +48,7 @@ class GatedTestLayer(nn.Module):
         fsum = fn.sum(u*F.sigmoid(w*msg+self.b), dim=1)
         sig_in = fsum/u
         out_h = (torch.log(sig_in/(1-sig_in))-self.b)/w
-        return {'neigh': out_h}
+        return {'sum_sigma_h': out_h}
 
     def update_all_f_mean(self, graph):
 
@@ -59,7 +59,7 @@ class GatedTestLayer(nn.Module):
         
         graph.edata['sigma'] = torch.sigmoid(graph.edata['e']) # n_{ij}
 
-        graph.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), self.fmean('m', 'sum_sigma_h'))
+        graph.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), self.fmean)
 
         graph.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
 
