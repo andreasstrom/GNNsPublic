@@ -33,34 +33,42 @@ class GatedTestLayer(nn.Module):
         self.bn_node_e = nn.BatchNorm1d(output_dim)
         
         self.P = nn.Parameter(torch.rand(output_dim)*1e-3+1) 
-    
-    def pNorm(self, nodes):
-        P = torch.clamp(self.P,1,100)
-        """ fn.u_add_v(nodes['Dh'], nodes['Eh'], nodes['DEh']) 
-        nodes['e'] = nodes['DEh'] + nodes['Ce']
-        nodes['sigma'] = torch.sigmoid(nodes['e'])
-        fn.u_mul_e(nodes['Bh'],nodes['sigma'], nodes['test'])
-        fn.sum(nodes['test'], nodes['sum_sigma_h'])
-        fn.copy_e(nodes['sigma'], nodes['test2'])
-        fn.sum(nodes['test2'], nodes['sum_sigma'])
-        nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6)  """
-        #h = (F.relu(nodes.mailbox['m'])).pow(P)
-        print(nodes.ndata['h'])
-        h = torch.abs(nodes.mailbox['m']).pow(P)
-        return {'neigh': torch.sum(h, dim=1).pow(1/P)}
 
-    def pNorm_edges(self, edges):
-        """ fn.u_add_v(nodes['Dh'], nodes['Eh'], nodes['DEh']) 
-        nodes['e'] = nodes['DEh'] + nodes['Ce']
-        nodes['sigma'] = torch.sigmoid(nodes['e'])
-        fn.u_mul_e(nodes['Bh'],nodes['sigma'], nodes['test'])
-        fn.sum(nodes['test'], nodes['sum_sigma_h'])
-        fn.copy_e(nodes['sigma'], nodes['test2'])
-        fn.sum(nodes['test2'], nodes['sum_sigma'])
-        nodes['h'] = nodes['Ah'] + nodes['sum_sigma_h'] / (nodes['sum_sigma'] + 1e-6)  """
-        #h = (F.relu(nodes.mailbox['m'])).pow(P)
-        h = torch.abs(nodes.mailbox['m']).pow(P)
-        return {'neigh': torch.sum(h, dim=1).pow(1/P)}
+    def update_all_example(self, graph):
+
+        """ 
+        Attempt at robust p-norm á:
+        def robust_norm(x, p):
+                a = np.abs(x).max()
+                return a * norm1(x / a, p)
+
+            def norm1(x, p):
+                "First-pass implementation of p-norm."
+                return (np.abs(x)**p).sum() ** (1./p) """
+
+        p = torch.clamp(self.P,1,100)
+        
+        graph.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
+        graph.edata['e'] = graph.edata['DEh'] + graph.edata['Ce']
+        graph.edata['sigma'] = torch.sigmoid(graph.edata['e']) # n_{ij}
+
+        alpha = torch.max(torch.abs(torch.cat((graph.ndata['Bh'],graph.edata['sigma']), dim=0)))
+
+        graph.ndata['Bh_pow'] = (torch.abs(graph.ndata['Bh'])/alpha).pow(p)
+        graph.edata['sig_pow'] = (torch.abs(graph.edata['sigma'])/alpha).pow(p)
+        graph.update_all(fn.u_mul_e('Bh_pow', 'sig_pow', 'm'), fn.sum('m', 'sum_sigma_h')) # u_mul_e = elementwise mul. Output "m" = n_{ij}***Vh. Then sum! 
+                                                                                 # Update_all - send messages through all edges and update all nodes.
+        
+        graph.update_all(fn.copy_e('sig_pow', 'm'), fn.sum('m', 'sum_sigma')) # copy_e - eqv to 'm': graph.edata['sigma']. Output "m". Then sum. 
+                                                                        # Again, send messages and update all nodes. Why do this step?????
+        
+        graph.ndata['h'] = graph.ndata['Ah'] + ((graph.ndata['sum_sigma_h'] / (graph.ndata['sum_sigma'] + 1e-6))*alpha).pow(torch.div(1,p)) # Uh + sum()
+
+        #graph.update_all(self.message_func,self.reduce_func) 
+        h = graph.ndata['h'] # result of graph convolution
+        e = graph.edata['e'] # result of graph convolution
+        # Call update function outside of update_all
+        return h, e
 
     def forward(self, g, h, e):
         
@@ -75,19 +83,7 @@ class GatedTestLayer(nn.Module):
         g.edata['e']  = e 
         g.edata['Ce'] = self.C(e) 
 
-        g.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
-        g.edata['e'] = g.edata['DEh'] + g.edata['Ce']
-        g.edata['sigma'] = torch.sigmoid(g.edata['e'])
-        g.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), fn.sum('m', 'sum_sigma_h'))
-        g.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
-        g.ndata['h'] = g.ndata['Ah'] + g.ndata['sum_sigma_h'] / (g.ndata['sum_sigma'] + 1e-6)
-
-        #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
-        #g.update_all(fn.copy_u('h', 'm'), self.pNorm)
-        #h = (1 + self.eps) * h + g.ndata['neigh']
-        #g.update_all(self.message_func,self.reduce_func) 
-        h = g.ndata['h'] # result of graph convolution
-        e = g.edata['e'] # result of graph convolution
+        h, e = self.update_all_example(g)
         
         if self.batch_norm:
             h = self.bn_node_h(h) # batch normalization  
