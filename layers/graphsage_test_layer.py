@@ -133,6 +133,7 @@ class SumPoolAggregator(Aggregator):
         super().__init__()
 
     def aggre(self, neighbour):
+        # test
         sum_neighbour = torch.sum(neighbour, dim=1)
         sum_neighbour = sum_neighbour.pow(torch.div(1,self.P))
         return sum_neighbour
