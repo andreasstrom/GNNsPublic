@@ -31,10 +31,47 @@ class GatedTestLayer(nn.Module):
         self.E = nn.Linear(input_dim, output_dim, bias=True)
         self.bn_node_h = nn.BatchNorm1d(output_dim)
         self.bn_node_e = nn.BatchNorm1d(output_dim)
-        
-        self.P = nn.Parameter(torch.rand(output_dim)*1e-3+1) 
 
-    def update_all_example(self, graph):
+        //self.P = nn.Parameter(torch.rand(output_dim)*1e-3+1)
+
+        self.u = nn.Parameter(torch.rand(output_dim)+1)
+        self.w = nn.Parameter(torch.rand(output_dim)+1)
+        self.b = nn.Parameter(torch.rand(1)+1)
+
+    
+
+    def fmean(self, nodes):
+
+        u = torch.exp(self.u)
+        w = torch.exp(self.w)
+        msg = torch.abs(nodes.mailbox['m'])
+        fsum = fn.sum(u*F.sigmoid(w*msg+self.b), dim=1)
+        sig_in = fsum/u
+        out_h = (torch.log(sig_in/(1-sig_in))-self.b)/w
+        return {'neigh': out_h}
+
+    def update_all_f_mean(self, graph):
+
+        
+        graph.apply_edges(fn.u_add_v('Dh', 'Eh', 'DEh'))
+
+        graph.edata['e'] = graph.edata['DEh'] + graph.edata['Ce']
+        
+        graph.edata['sigma'] = torch.sigmoid(graph.edata['e']) # n_{ij}
+
+        graph.update_all(fn.u_mul_e('Bh', 'sigma', 'm'), self.fmean('m', 'sum_sigma_h'))
+
+        graph.update_all(fn.copy_e('sigma', 'm'), fn.sum('m', 'sum_sigma'))
+
+        graph.ndata['h'] = graph.ndata['Ah'] + graph.ndata['sum_sigma_h'] / (graph.ndata['sum_sigma'] + 1e-6)
+        
+        #graph.update_all(self.message_func,self.reduce_func) 
+        h = graph.ndata['h'] # result of graph convolution
+        e = graph.edata['e'] # result of graph convolution
+        # Call update function outside of update_all
+        return h, e
+
+    def update_all_p_norm(self, graph):
 
         """ 
         Attempt at robust p-norm á:
@@ -83,7 +120,7 @@ class GatedTestLayer(nn.Module):
         g.edata['e']  = e 
         g.edata['Ce'] = self.C(e) 
 
-        h, e = self.update_all_example(g)
+        h, e = self.update_all_f_mean(g)
         
         if self.batch_norm:
             h = self.bn_node_h(h) # batch normalization  
