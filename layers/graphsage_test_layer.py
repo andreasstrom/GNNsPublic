@@ -23,6 +23,7 @@ class GraphSageLayer(nn.Module):
         self.batch_norm = batch_norm
         self.residual = residual
         self.dgl_builtin = dgl_builtin
+        self.P = nn.Parameter(torch.rand(output_dim)*1e-3+1) 
         
         if in_feats != out_feats:
             self.residual = False
@@ -37,6 +38,8 @@ class GraphSageLayer(nn.Module):
                                                     activation, bias)
             elif aggregator_type == "lstm":
                 self.aggregator = LSTMAggregator(in_feats, in_feats)
+            elif aggregator_type == "sumpool":
+                self.aggregator = SumPoolAggregator()
             else:
                 self.aggregator = MeanAggregator()
         else:
@@ -63,6 +66,10 @@ class GraphSageLayer(nn.Module):
                 g.update_all(fn.copy_src(src='h', out='m'), 
                              self.aggregator,
                              self.nodeapply)
+            elif self.aggregator_type == 'sumpool':
+                P = torch.clamp(self.P,1,100)
+                g.ndata['h_pow'] = torch.abs(g.ndata['h']).pow(P)
+                g.update_all(fn.copy_src('h_pow', 'm'), fn.sum('m', 'c'), self.nodeapply)
             else:
                 g.update_all(fn.copy_src('h', 'm'), fn.mean('m', 'c'), self.nodeapply)
             h = g.ndata['h']
@@ -116,6 +123,19 @@ class MeanAggregator(Aggregator):
     def aggre(self, neighbour):
         mean_neighbour = torch.mean(neighbour, dim=1)
         return mean_neighbour
+
+class SumPoolAggregator(Aggregator):
+    """
+    Mean Aggregator for graphsage
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def aggre(self, neighbour):
+        sum_neighbour = torch.sum(neighbour, dim=1)
+        
+        return sum_neighbour
 
 
 class MaxPoolAggregator(Aggregator):
